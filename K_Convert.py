@@ -1,107 +1,103 @@
 from tkinter.messagebox import showinfo
 
-def IdentifySeparator(line):
-    commas = 0
-    semicolons = 0
-    separator = ""
-    for char in line:
-        if char == ",":
-            commas += 1
-        elif char == ";":
-            semicolons += 1
+
+def identify_separator(line):
+    commas = line.count(',')
+    semicolons = line.count(';')
 
     if commas > semicolons:
-        separator = ","
-    elif commas < semicolons:
-        separator = ";"
-    
-    return separator
+        return ","  # type: str
+    else:
+        return ";"
 
-def convert(input, output):
 
-    #tworzenie list konkretnych zmiennych
+def split_input_to_array_of_lines(input):
     lines = []
-    probki = []
-    probki_unique = []
-    zwiazki = []
-    zwiazki_unique = []
-    wartosci = []
-    jednostki = []
 
-    #zmiana pliku na list? list rozdzielonych ; lub ,
     for line in input:
-        line_separator = IdentifySeparator(line)
+        line_separator = identify_separator(line)
         lines.append(line.split(line_separator))
 
-    input.close()
+    return lines
 
-    #tworzenie listy zwierajacej same wyniki bez naglowkow i ostatniej pustej linijki
-    wyniki = lines[1:]
 
-    #wypelnianie list zmiennych wartosciami z pliku
-    for line in wyniki:
-        nazwa_probki = line[0]
-        zwiazek = line[1]
-        wartosc = line[2]
-        jednostka = line[3]
-    
-        probki.append(nazwa_probki)
-        zwiazki.append(zwiazek)
-        wartosci.append(wartosc)
-        jednostki.append(jednostka)
-
-        if nazwa_probki not in probki_unique:
-            probki_unique.append(nazwa_probki)
-
-        if zwiazek not in zwiazki_unique:
-            zwiazki_unique.append(zwiazek)
-
-    #tworzenie pierwszego wiersza do raportu wyjsciowego
-    naglowki = ["Nr probki"]
-    for x in zwiazki_unique:
-        naglowki.append(x)
-
-    #tworzenie raportu i dodawanie do niego pierwszego wiersza
-    raport = []
-    raport.append(naglowki)
-
-    #dodanie wiersza (w kazdym wierszu tyle liczba miejsc = liczba unikalnych zwiazkow w pliku + 1 (nazwa probki)) dla kazdej probki.
-    for nr_probki in probki_unique:
-        wynik_dla_probki = []
-        for item in naglowki:
-            wynik_dla_probki.append("brak")
-        for wynik in wyniki:
-            if wynik[0] == nr_probki and wynik_dla_probki[0] == "brak":
-                wynik_dla_probki[0] = wynik[0]
-        raport.append(wynik_dla_probki)
-
-    #wpisywanie wartosci do raportu
-    for wynik in wyniki:
-        numer_pr = wynik[0]
-        zwiazek = wynik[1]
-        wartosc = wynik[2]
-        wiersz = probki_unique.index(numer_pr) + 1
-        wiersz = raport[wiersz]
-        pos_zwiazku = zwiazki_unique.index(zwiazek) + 1
-        wiersz[pos_zwiazku] = wartosc
-
-    #konwertowanie raportu do stringu do zpaisu w pliku
+def convert_report_to_string(report):
+    global str_len
     string = ""
-    for row in raport:
+    for row in report:
         for item in row:
             string = string + item + ";"
             str_len = len(string)
-        string = string[:str_len-1]
+        string = string[:str_len - 1]
         string += "\n"
 
     print (string)
     print ("=========================================")
 
-    #zapisywanie do pliku
+    return string
+
+
+def convert(input, output):
+    # tworzenie list konkretnych zmiennych
+    global str_len
+    samples = []
+    unique_samples = []
+    compounds = []
+    unique_compounds = []
+    values = []
+    units = []
+
+    lines = split_input_to_array_of_lines(input)
+
+    input.close()
+
+    # tworzenie listy zwierajacej same results bez naglowkow i ostatniej pustej linijki
+    results = lines[1:]
+
+    # wypelnianie list zmiennych wartosciami z pliku
+    for line in results:
+        sample_name, compound, value, unit = line[0], line[1], line[2], line[3]
+
+        samples.append(sample_name)
+        compounds.append(compound)
+        values.append(value)
+        units.append(unit)
+
+        if sample_name not in unique_samples:
+            unique_samples.append(sample_name)
+
+        if compound not in unique_compounds:
+            unique_compounds.append(compound)
+
+    # tworzenie pierwszego wiersza do raportu wyjsciowego
+    headers = ["Nr probki"] + unique_compounds
+
+    # tworzenie raportu i dodawanie do niego pierwszego wiersza
+    report = [headers]
+
+    # dodanie wiersza (w kazdym wierszu tyle liczba miejsc = liczba unikalnych zwiazkow w pliku + 1 (nazwa samples)) dla kazdej samples.
+    for sample_number in unique_samples:
+        results_for_sample = ["brak"] * headers.count()
+
+        for result in results:
+            if result[0] == sample_number and results_for_sample[0] == "brak":
+                results_for_sample[0] = result[0]
+        report.append(results_for_sample)
+
+    # wpisywanie values do raportu
+    for result in results:
+        sample_number, compound, value = result[0], result[1], result[2]
+
+        row = report[unique_samples.index(sample_number) + 1]
+        compound_position = unique_compounds.index(compound) + 1
+        row[compound_position] = value
+
+    # konwertowanie raportu do stringu do zpaisu w pliu
+
+    string = convert_report_to_string(report)
+
+    # zapisywanie do pliku
     output.write(string)
     output.close()
 
     showinfo("Wykonano", "Konwersja wykonana")
-
-    
-
